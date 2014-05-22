@@ -1,0 +1,20 @@
+doctype html
+html
+	head
+		title Auth Service — {{.Title}}
+		link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"
+
+	body
+		header
+			.navbar.navbar-default.navbar-static-top role="navigation"
+				.container
+					.navbar-header
+						a.navbar-brand href="/" Auth Service
+					ul.nav.navbar-nav
+						li
+							a href="/login" Login
+						li
+							a href="/register" Register
+
+		article
+			block content
