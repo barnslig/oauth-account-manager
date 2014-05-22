@@ -24,6 +24,7 @@ type ConfigStructMail struct {
 	Username string
 	Password string
 	Server   string
+	Port     int64
 }
 
 type ConfigStruct struct {
@@ -67,6 +68,7 @@ func main() {
 	// set routes
 	r := mux.NewRouter()
 	r.HandleFunc("/register", Register)
+	r.HandleFunc("/confirm/{uuid}", Confirm)
 
 	http.ListenAndServe(":3000", nosurf.New(r))
 }
