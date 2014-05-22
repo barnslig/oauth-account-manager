@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+type LoginForm struct {
+	Username string `schema:"username"`
+	Password string `schema:"password"`
+	CsrfToken       string `schema:"csrf_token"`
+}
+
 type RegisterForm struct {
 	Realname        string `schema:"realname"`
 	Username        string `schema:"username"`
@@ -43,6 +49,51 @@ func Confirm(w http.ResponseWriter, r *http.Request) {
 		user.Active = true
 		gDb.Save(&user)
 	}
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	var (
+		errors  []string
+		success []string
+	)
+
+	if r.Method == "POST" {
+		decoder := schema.NewDecoder()
+		login := new(LoginForm)
+
+		if err := r.ParseForm(); err != nil {
+			errors = append(errors, err.Error())
+		}
+		if err := decoder.Decode(login, r.PostForm); err != nil {
+			errors = append(errors, err.Error())
+		}
+
+		// look up the user
+		var user User
+		if gDb.Where(&User{Username: login.Username, Password: login.Password}).First(&user).Error != nil {
+			errors = append(errors, "Wrong username and/or password!")
+		} else {
+			session, _ := SessionStore.Get(r, "user")
+			session.Values["id"] = user.Id
+			session.Values["realname"] = user.Realname
+			session.Save(r, w)
+			success = append(success, "Login successfull!")
+		}
+	}
+
+	err := TmplLogin.Execute(w, map[string]interface{}{
+		"Title": "Login",
+		"_csrf": nosurf.Token(r),
+		"Errors":  errors,
+		"Success": success,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,21 @@
+extends ./base
+
+block content
+	.container
+		.row
+			.col-xs-4.col-xs-offset-4
+				h1 Login
+				{{range .Errors}}
+					.alert.alert-warning {{.}}
+				{{end}}
+				{{range .Success}}
+					.alert.alert-success {{.}}
+				{{end}}
+				form role="form" action="/login" method="post"
+					input type="hidden" value="{{._csrf}}" name="csrf_token"
+					.form-group
+						input.form-control type="text" name="username" placeholder="Username"
+					.form-group
+						input.form-control type="password" name="password" placeholder="Password"
+					.form-group
+						button.btn.btn-primary.pull-right type="submit" Sign in

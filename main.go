@@ -41,6 +41,7 @@ var (
 	Db           *sql.DB
 	Template     *gold.Generator
 
+	TmplLogin    *template.Template
 	TmplRegister *template.Template
 )
 
@@ -54,6 +55,7 @@ func main() {
 	}
 	Template = gold.NewGenerator(true).SetBaseDir(Config.TemplateDir)
 	SessionStore = sessions.NewCookieStore([]byte(Config.SessionSecret))
+	TmplLogin, _ = Template.ParseFile("login.gold")
 	TmplRegister, _ = Template.ParseFile("register.gold")
 
 	// open database connection
@@ -69,6 +71,8 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/register", Register)
 	r.HandleFunc("/confirm/{uuid}", Confirm)
+	r.HandleFunc("/login", Login)
+	r.HandleFunc("/logout", Logout)
 
 	http.ListenAndServe(":3000", nosurf.New(r))
 }
