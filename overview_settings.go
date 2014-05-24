@@ -1,34 +1,44 @@
 package main
 
 import (
+	"github.com/gorilla/sessions"
 	"net/http"
 	"log"
+	"errors"
 )
 
-func IsLoggedIn(w http.ResponseWriter, r *http.Request,  urlStr string) User {
+func IsLoggedIn(session *sessions.Session) (User, error) {
 	var user User
-	session, _ := SessionStore.Get(r, "user")
 
 	// check if session exists
-	if len(session.Values) == 0 {
-		http.Redirect(w, r, urlStr, http.StatusMovedPermanently)
+	if session.Values["id"] == nil {
+		return user, errors.New("No session")
 	}
 
 	// check if database handle exists
 	if gDb.Where(&User{Id: session.Values["id"].(int64)}).First(&user).Error != nil {
-		http.Redirect(w, r, urlStr, http.StatusMovedPermanently)
+		return user, errors.New("Session invalid")
 	}
 
-	return user
+	return user, nil
 }
 
 func Overview(w http.ResponseWriter, r *http.Request) {
-	user := IsLoggedIn(w, r, "/login")
+	session, _ := SessionStore.Get(r, "user")
 
-	if err := TmplOverview.Execute(w, map[string]interface{}{
-		"Title": "Login",
-		"User": user,
-	}); err != nil {
-		log.Fatal(err)
+	if user, err := IsLoggedIn(session); err != nil {
+		session.AddFlash(err.Error())
+		session.Save(r, w)
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	} else {
+		flashes := session.Flashes()
+		session.Save(r, w)
+		if err := TmplOverview.Execute(w, map[string]interface{}{
+			"Title": "Login",
+			"User": user,
+			"flashes": flashes,
+		}); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
