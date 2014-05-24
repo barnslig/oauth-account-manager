@@ -43,6 +43,7 @@ var (
 
 	TmplLogin    *template.Template
 	TmplRegister *template.Template
+	TmplOverview *template.Template
 )
 
 func main() {
@@ -57,6 +58,7 @@ func main() {
 	SessionStore = sessions.NewCookieStore([]byte(Config.SessionSecret))
 	TmplLogin, _ = Template.ParseFile("login.gold")
 	TmplRegister, _ = Template.ParseFile("register.gold")
+	TmplOverview, _ = Template.ParseFile("overview.gold")
 
 	// open database connection
 	if d, err := gorm.Open(Config.Database.Type, Config.Database.Conn); err == nil {
@@ -73,6 +75,7 @@ func main() {
 	r.HandleFunc("/confirm/{uuid}", Confirm)
 	r.HandleFunc("/login", Login)
 	r.HandleFunc("/logout", Logout)
+	r.HandleFunc("/overview", Overview)
 
 	http.ListenAndServe(":3000", nosurf.New(r))
 }

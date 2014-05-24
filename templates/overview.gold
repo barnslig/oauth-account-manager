@@ -1,0 +1,10 @@
+extends ./base
+
+block content
+	.container
+		.row
+			.col-xs-6
+				.panel.panel-default
+					.panel-body
+						h1 {{.User.Realname}} 
+							small {{.User.Username}}
