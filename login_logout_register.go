@@ -55,6 +55,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")
 	fail := false
 
+	if _, err := IsLoggedIn(session); err == nil {
+		http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+	}
+
 	if r.Method == "POST" {
 		decoder := schema.NewDecoder()
 		login := new(LoginForm)
@@ -108,6 +112,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func Register(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")
 	fail := false
+
+	if _, err := IsLoggedIn(session); err == nil {
+		http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+	}
 
 	if r.Method == "POST" {
 		decoder := schema.NewDecoder()
