@@ -6,6 +6,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"github.com/justinas/nosurf"
 	_ "github.com/mattn/go-sqlite3"
@@ -77,5 +78,5 @@ func main() {
 	r.HandleFunc("/logout", Logout)
 	r.HandleFunc("/overview", Overview)
 
-	http.ListenAndServe(":3000", nosurf.New(r))
+	http.ListenAndServe(":3000", context.ClearHandler(nosurf.New(r)))
 }
