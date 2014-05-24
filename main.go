@@ -31,6 +31,7 @@ type ConfigStructMail struct {
 type ConfigStruct struct {
 	TemplateDir   string
 	SessionSecret string
+	BaseDomain    string
 	Database      ConfigStructDatabase
 	Mail          ConfigStructMail
 }

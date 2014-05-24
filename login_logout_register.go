@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"fmt"
 )
 
 type LoginForm struct {
@@ -151,7 +152,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// send mail
-			if err := SendMail(register.Email, "Activate your Account", "/confirm/" + user.Email[0].ActivateId); err != nil {
+			if err := SendMail(register.Email, "Activate your Account", fmt.Sprintf("%s/confirm/%s", Config.BaseDomain, user.Email[0].ActivateId)); err != nil {
 				session.AddFlash(err.Error())
 			} else {
 				gDb.Save(&user)
