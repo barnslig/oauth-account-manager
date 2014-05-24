@@ -97,7 +97,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-
+	session, _ := SessionStore.Get(r, "user")
+	delete(session.Values, "id")
+	delete(session.Values, "realname")
+	session.AddFlash("Successful logged out!")
+	session.Save(r, w)
+	http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +147,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 				session.AddFlash(err.Error())
 			} else {
 				gDb.Save(&user)
-				
+
 				session.Values["id"] = user.Id
 				session.Values["realname"] = user.Realname
 				session.Save(r, w)
