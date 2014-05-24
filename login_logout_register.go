@@ -52,40 +52,44 @@ func Confirm(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	var (
-		errors  []string
-		success []string
-	)
+	session, _ := SessionStore.Get(r, "user")
+	fail := false
 
 	if r.Method == "POST" {
 		decoder := schema.NewDecoder()
 		login := new(LoginForm)
 
 		if err := r.ParseForm(); err != nil {
-			errors = append(errors, err.Error())
+			fail = true
+			session.AddFlash(err.Error())
 		}
 		if err := decoder.Decode(login, r.PostForm); err != nil {
-			errors = append(errors, err.Error())
+			fail = true
+			session.AddFlash(err.Error())
 		}
 
 		// look up the user
 		var user User
 		if gDb.Where(&User{Username: login.Username, Password: login.Password}).First(&user).Error != nil {
-			errors = append(errors, "Wrong username and/or password!")
-		} else {
-			session, _ := SessionStore.Get(r, "user")
+			fail = true
+			session.AddFlash("Username and/or password wrong!")
+		}
+
+		if !fail {
 			session.Values["id"] = user.Id
 			session.Values["realname"] = user.Realname
 			session.Save(r, w)
-			success = append(success, "Login successfull!")
+			http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
 		}
 	}
 
+	flashes := session.Flashes()
+	session.Save(r, w)
 	err := TmplLogin.Execute(w, map[string]interface{}{
 		"Title": "Login",
 		"_csrf": nosurf.Token(r),
-		"Errors":  errors,
-		"Success": success,
+		"fail": fail,
+		"flashes": flashes,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -97,58 +101,63 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
-	var (
-		errors  []string
-		success []string
-	)
+	session, _ := SessionStore.Get(r, "user")
+	fail := false
 
 	if r.Method == "POST" {
 		decoder := schema.NewDecoder()
 		register := new(RegisterForm)
 
 		if err := r.ParseForm(); err != nil {
-			errors = append(errors, err.Error())
+			fail = true
+			session.AddFlash(err.Error())
 		}
 		if err := decoder.Decode(register, r.PostForm); err != nil {
-			errors = append(errors, err.Error())
+			fail = true
+			session.AddFlash(err.Error())
 		}
 		if register.Password != register.PasswordConfirm {
-			errors = append(errors, "Passwords are not identical")
+			fail = true
+			session.AddFlash("Passwords are not identical")
 		}
-
-		// create object
-		user := User{
-			Realname: register.Realname,
-			Username: register.Username,
-			Password: register.Password,
-			Active:   false,
-			Email: []UserEmail{
-				{
-					Email:      register.Email,
-					CreatedAt:  time.Now(),
-					Active:     false,
-					ActivateId: uuid.NewRandom().String(),
+		if !fail {
+			// create object
+			user := User{
+				Realname: register.Realname,
+				Username: register.Username,
+				Password: register.Password,
+				Active:   false,
+				Email: []UserEmail{
+					{
+						Email:      register.Email,
+						CreatedAt:  time.Now(),
+						Active:     false,
+						ActivateId: uuid.NewRandom().String(),
+					},
 				},
-			},
-		}
+			}
 
-		// send mail
-		if err := SendMail(register.Email, "Activate your Account", "/confirm/" + user.Email[0].ActivateId); err != nil {
-			errors = append(errors, err.Error())
-		} else {
-			gDb.Save(&user)
-			success = append(success, "Registered!")
+			// send mail
+			if err := SendMail(register.Email, "Activate your Account", "/confirm/" + user.Email[0].ActivateId); err != nil {
+				session.AddFlash(err.Error())
+			} else {
+				gDb.Save(&user)
+				
+				session.Values["id"] = user.Id
+				session.Values["realname"] = user.Realname
+				session.Save(r, w)
+				http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+			}
 		}
 	}
 
-	if len(errors) != 0 {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	flashes := session.Flashes()
+	session.Save(r, w)
 	err := TmplRegister.Execute(w, map[string]interface{}{
 		"Title":   "Register",
 		"_csrf":   nosurf.Token(r),
-		"Errors":  errors,
-		"Success": success,
+		"fail": fail,
+		"flashes": flashes,
 	})
 	if err != nil {
 		log.Fatal(err)

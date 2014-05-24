@@ -5,12 +5,17 @@ block content
 		.row
 			.col-xs-4.col-xs-offset-4
 				h1 Register
-				{{range .Errors}}
-					.alert.alert-warning {{.}}
+				
+				{{if .fail}}
+					{{range .flashes}}
+						.alert.alert-danger {{.}}
+					{{end}}
+				{{else}}
+					{{range .flashes}}
+						.alert.alert-info {{.}}
+					{{end}}
 				{{end}}
-				{{range .Success}}
-					.alert.alert-success {{.}}
-				{{end}}
+				
 				form role="form" action="/register" method="post"
 					input type="hidden" value="{{._csrf}}" name="csrf_token"
 					.form-group
