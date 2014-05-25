@@ -80,9 +80,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !fail {
-			session.AddFlash("Registration successful! Please check your mails to activate your account!")
+			session.Values["id"] = user.Id
+			session.Values["realname"] = user.Realname
 			session.Save(r, w)
-			http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+			http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
 		}
 	}
 
@@ -154,10 +155,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			} else {
 				gDb.Save(&user)
 
-				session.Values["id"] = user.Id
-				session.Values["realname"] = user.Realname
+				session.AddFlash("Registration successful! Please check your mails to activate your account!")
 				session.Save(r, w)
-				http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+				http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 			}
 		}
 	}
