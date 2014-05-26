@@ -5,15 +5,9 @@ block content
 		.row
 			.col-xs-4.col-xs-offset-4
 				h1 Login
-				
-				{{if .fail}}
-					{{range .flashes}}
-						.alert.alert-danger {{.}}
-					{{end}}
-				{{else}}
-					{{range .flashes}}
-						.alert.alert-info {{.}}
-					{{end}}
+
+				{{range .flashes}}
+					.alert.alert-info {{.}}
 				{{end}}
 
 				form role="form" action="/login" method="post"

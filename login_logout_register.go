@@ -54,7 +54,6 @@ func Confirm(w http.ResponseWriter, r *http.Request) {
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")
-	fail := false
 	var user User
 
 	if _, err := IsLoggedIn(session); err == nil {
@@ -66,20 +65,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		login := new(LoginForm)
 
 		if err := r.ParseForm(); err != nil {
-			fail = true
 			session.AddFlash(err.Error())
 		} else if err := decoder.Decode(login, r.PostForm); err != nil {
-			fail = true
 			session.AddFlash(err.Error())
 		} else if gDb.Where(&User{Username: login.Username, Password: login.Password}).First(&user).Error != nil {
-			fail = true
 			session.AddFlash("Username and/or password wrong!")
 		} else if !user.Active {
-			fail = true
 			session.AddFlash("User isn't activated!")
-		}
-
-		if !fail {
+		} else {
 			session.Values["id"] = user.Id
 			session.Values["realname"] = user.Realname
 			session.Save(r, w)
@@ -92,7 +85,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	err := TmplLogin.Execute(w, map[string]interface{}{
 		"Title": "Login",
 		"_csrf": nosurf.Token(r),
-		"fail": fail,
 		"flashes": flashes,
 	})
 	if err != nil {
@@ -111,7 +103,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")
-	fail := false
 
 	if _, err := IsLoggedIn(session); err == nil {
 		http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
@@ -122,17 +113,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		register := new(RegisterForm)
 
 		if err := r.ParseForm(); err != nil {
-			fail = true
 			session.AddFlash(err.Error())
 		} else if err := decoder.Decode(register, r.PostForm); err != nil {
-			fail = true
 			session.AddFlash(err.Error())
 		} else if register.Password != register.PasswordConfirm {
-			fail = true
 			session.AddFlash("Passwords are not identical")
-		}
-
-		if !fail {
+		} else {
 			// create object
 			user := User{
 				Realname: register.Realname,
@@ -167,7 +153,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	err := TmplRegister.Execute(w, map[string]interface{}{
 		"Title":   "Register",
 		"_csrf":   nosurf.Token(r),
-		"fail": fail,
 		"flashes": flashes,
 	})
 	if err != nil {
