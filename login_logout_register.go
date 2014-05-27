@@ -27,29 +27,40 @@ type RegisterForm struct {
 }
 
 func Confirm(w http.ResponseWriter, r *http.Request) {
+	session, _ := SessionStore.Get(r, "user")
 	vars := mux.Vars(r)
 	id := vars["uuid"]
+	var mail UserEmail
 
 	// get email
-	var mail UserEmail
 	if gDb.Where(&UserEmail{ActivateId: id}).First(&mail).Error != nil {
-		http.Error(w, "Unknown ID", http.StatusBadRequest)
-		return
+		session.AddFlash("Unknown ID")
+	} else if mail.Active {
+		session.AddFlash("Used activation key!")
+	} else {
+		// get user
+		var user User
+		gDb.Model(&mail).Related(&user)
+
+		// activate
+		if !mail.Active {
+			mail.Active = true
+			gDb.Save(&mail)
+		}
+		if !user.Active {
+			user.Active = true
+			gDb.Save(&user)
+		}
+
+		// create session and redirect!
+		session.Values["id"] = user.Id
+		session.Values["realname"] = user.Realname
+		session.Save(r, w)
+		http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
 	}
 
-	// get user
-	var user User
-	gDb.Model(&mail).Related(&user)
-
-	// activate
-	if !mail.Active {
-		mail.Active = true
-		gDb.Save(&mail)
-	}
-	if !user.Active {
-		user.Active = true
-		gDb.Save(&user)
-	}
+	session.Save(r, w)
+	http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
