@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 	"fmt"
+	"reflect"
 )
 
 type LoginForm struct {
@@ -24,6 +25,20 @@ type RegisterForm struct {
 	Password        string `schema:"password"`
 	PasswordConfirm string `schema:"password-confirm"`
 	CsrfToken       string `schema:"csrf_token"`
+}
+
+func TestStructStringsLength(m interface{}) bool {
+	r := reflect.ValueOf(m).Elem()
+
+	for i := 0; i < r.NumField(); i++ {
+		if r.Type().Field(i).Type.Kind() == reflect.String {
+			if len(r.Field(i).Interface().(string)) < 1 {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func Confirm(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +72,7 @@ func Confirm(w http.ResponseWriter, r *http.Request) {
 		session.Values["realname"] = user.Realname
 		session.Save(r, w)
 		http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+		return
 	}
 
 	session.Save(r, w)
@@ -79,6 +95,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			session.AddFlash(err.Error())
 		} else if err := decoder.Decode(login, r.PostForm); err != nil {
 			session.AddFlash(err.Error())
+		} else if !TestStructStringsLength(login) {
+			session.AddFlash("All fields are required!")
 		} else if gDb.Where(&User{Username: login.Username, Password: login.Password}).First(&user).Error != nil {
 			session.AddFlash("Username and/or password wrong!")
 		} else if !user.Active {
@@ -88,6 +106,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			session.Values["realname"] = user.Realname
 			session.Save(r, w)
 			http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
+			return
 		}
 	}
 
@@ -127,6 +146,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			session.AddFlash(err.Error())
 		} else if err := decoder.Decode(register, r.PostForm); err != nil {
 			session.AddFlash(err.Error())
+		} else if !TestStructStringsLength(register) {
+			session.AddFlash("All fields are required!")
 		} else if register.Password != register.PasswordConfirm {
 			session.AddFlash("Passwords are not identical")
 		} else {
@@ -155,6 +176,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 				session.AddFlash("Registration successful! Please check your mails to activate your account!")
 				session.Save(r, w)
 				http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+				return
 			}
 		}
 	}
