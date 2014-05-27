@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"net/smtp"
 	"text/template"
-	"bytes"
 	"time"
-	"fmt"
 )
 
 func SendMail(to string, subject string, content string) (err error) {
@@ -18,8 +18,8 @@ Subject: {{.Subject}}
 	buffer := new(bytes.Buffer)
 
 	tmpl.Execute(buffer, map[string]interface{}{
-		"To": to,
-		"Date": time.Now().String(),
+		"To":      to,
+		"Date":    time.Now().String(),
 		"Subject": subject,
 		"Message": content,
 	})

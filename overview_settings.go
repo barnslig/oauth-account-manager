@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/gorilla/sessions"
-	"net/http"
-	"log"
 	"errors"
+	"github.com/gorilla/sessions"
+	"log"
+	"net/http"
 )
 
 func IsLoggedIn(session *sessions.Session) (User, error) {
@@ -34,8 +34,8 @@ func Overview(w http.ResponseWriter, r *http.Request) {
 		flashes := session.Flashes()
 		session.Save(r, w)
 		if err := TmplOverview.Execute(w, map[string]interface{}{
-			"Title": "Login",
-			"User": user,
+			"Title":   "Login",
+			"User":    user,
 			"flashes": flashes,
 		}); err != nil {
 			log.Fatal(err)

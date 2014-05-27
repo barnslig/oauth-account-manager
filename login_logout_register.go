@@ -2,20 +2,20 @@ package main
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/justinas/nosurf"
 	"log"
 	"net/http"
-	"time"
-	"fmt"
 	"reflect"
+	"time"
 )
 
 type LoginForm struct {
-	Username string `schema:"username"`
-	Password string `schema:"password"`
-	CsrfToken       string `schema:"csrf_token"`
+	Username  string `schema:"username"`
+	Password  string `schema:"password"`
+	CsrfToken string `schema:"csrf_token"`
 }
 
 type RegisterForm struct {
@@ -113,8 +113,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	flashes := session.Flashes()
 	session.Save(r, w)
 	err := TmplLogin.Execute(w, map[string]interface{}{
-		"Title": "Login",
-		"_csrf": nosurf.Token(r),
+		"Title":   "Login",
+		"_csrf":   nosurf.Token(r),
 		"flashes": flashes,
 	})
 	if err != nil {
