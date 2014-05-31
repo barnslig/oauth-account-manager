@@ -10,7 +10,7 @@ block content
 					.alert.alert-info {{.}}
 				{{end}}
 
-				form role="form" action="/login" method="post"
+				form role="form" action="{{.url}}" method="post"
 					input type="hidden" value="{{._csrf}}" name="csrf_token"
 					.form-group
 						input.form-control type="text" name="username" placeholder="Username"

@@ -81,6 +81,7 @@ func Confirm(w http.ResponseWriter, r *http.Request) {
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")
+	query := r.URL.Query()
 	var user User
 
 	if _, err := IsLoggedIn(session); err == nil {
@@ -105,6 +106,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			session.Values["id"] = user.Id
 			session.Values["realname"] = user.Realname
 			session.Save(r, w)
+
+			if len(query.Get("redirect")) > 0 {
+				http.Redirect(w, r, query.Get("redirect"), http.StatusMovedPermanently)
+				return
+			}
 			http.Redirect(w, r, "/overview", http.StatusMovedPermanently)
 			return
 		}
@@ -116,6 +122,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		"Title":   "Login",
 		"_csrf":   nosurf.Token(r),
 		"flashes": flashes,
+		"url": r.URL.RequestURI(),
 	})
 	if err != nil {
 		log.Fatal(err)
