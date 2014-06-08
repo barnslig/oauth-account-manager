@@ -1,0 +1,26 @@
+extends ./base
+
+block content
+	.container
+		.row
+			.col-xs-4.col-xs-offset-4
+				{{if not .process_error}}
+					h1 Allow access for {{.client.Name}}
+				{{end}}
+
+				{{range .flashes}}
+					.alert.alert-info {{.}}
+				{{end}}
+
+				{{if .process_error}}
+					a.btn.btn-primary href="javascript:history.back();" Go back
+				{{end}}
+
+				{{if not .process_error}}
+					form role="form" action="{{.url}}" method="post"
+						input type="hidden" value="{{._csrf}}" name="csrf_token"
+						.form-group
+							button.btn.btn-success.btn-lg.btn-block type="submit" name="action" value="1" Allow
+						.form-group
+							button.btn.btn-danger.btn-lg.btn-block type="submit" name="action" value="0" Deny
+				{{end}}

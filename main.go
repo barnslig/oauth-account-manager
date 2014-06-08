@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	"github.com/BurntSushi/toml"
+	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -41,11 +42,13 @@ var (
 	SessionStore *sessions.CookieStore
 	gDb          gorm.DB
 	Db           *sql.DB
+	Red          redis.Conn
 	Template     *gold.Generator
 
-	TmplLogin    *template.Template
-	TmplRegister *template.Template
-	TmplOverview *template.Template
+	TmplLogin     *template.Template
+	TmplRegister  *template.Template
+	TmplOverview  *template.Template
+	TmploAuthAuth *template.Template
 )
 
 func main() {
@@ -61,12 +64,21 @@ func main() {
 	TmplLogin, _ = Template.ParseFile("login.gold")
 	TmplRegister, _ = Template.ParseFile("register.gold")
 	TmplOverview, _ = Template.ParseFile("overview.gold")
+	TmploAuthAuth, _ = Template.ParseFile("oauth-authorization.gold")
 
 	// open database connection
 	if d, err := gorm.Open(Config.Database.Type, Config.Database.Conn); err == nil {
 		gDb = d
 		Db = d.DB()
 		InitModels()
+	} else {
+		log.Fatal(err)
+	}
+
+	// open redis connection
+	if r, err := redis.Dial("tcp", ":6379"); err == nil {
+		Red = r
+		defer r.Close()
 	} else {
 		log.Fatal(err)
 	}
@@ -78,6 +90,9 @@ func main() {
 	r.HandleFunc("/login", Login)
 	r.HandleFunc("/logout", Logout)
 	r.HandleFunc("/overview", Overview)
+
+	r.HandleFunc("/o/authorization", oAuthAuthorization)
+	r.HandleFunc("/o/token", oAuthToken)
 
 	http.ListenAndServe(":3000", context.ClearHandler(nosurf.New(r)))
 }
