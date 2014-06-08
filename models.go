@@ -11,6 +11,7 @@ type oAuthClient struct {
 	Name        string
 	ClientId    string
 	Secret      string
+	AutoConfirm bool
 }
 
 type oAuthCodes struct {

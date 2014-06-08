@@ -64,8 +64,12 @@ func oAuthAuthorization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// token-callback !
-	if r.Method == "POST" && !processError {
-		action := r.PostForm["action"][0]
+	if (r.Method == "POST" && !processError) || (client.AutoConfirm) {
+		action := "1"
+		if !client.AutoConfirm {
+			action = r.PostForm["action"][0]
+		}
+
 		if action == "1" {
 			token := uuid.New()
 
