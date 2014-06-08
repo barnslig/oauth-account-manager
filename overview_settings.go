@@ -16,7 +16,7 @@ func IsLoggedIn(session *sessions.Session) (User, error) {
 	}
 
 	// check if database handle exists
-	if gDb.Where(&User{Id: session.Values["id"].(int64)}).First(&user).Error != nil {
+	if gDb.Where(&User{Id: session.Values["id"].(int64), Active: true}).First(&user).Error != nil {
 		return user, errors.New("Session invalid")
 	}
 
