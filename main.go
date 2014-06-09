@@ -94,5 +94,9 @@ func main() {
 	r.HandleFunc("/o/authorization", oAuthAuthorization)
 	r.HandleFunc("/o/token", oAuthToken)
 
-	http.ListenAndServe(":3000", context.ClearHandler(nosurf.New(r)))
+	// csrf protection
+	csrfHandler := nosurf.New(r)
+	csrfHandler.ExemptPath("/o/token")
+
+	http.ListenAndServe(":3000", context.ClearHandler(csrfHandler))
 }

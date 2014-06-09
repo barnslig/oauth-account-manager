@@ -2,7 +2,9 @@ package main
 
 import (
 	"code.google.com/p/go-uuid/uuid"
+	"encoding/json"
 	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"github.com/justinas/nosurf"
 	"log"
 	"net/http"
@@ -11,9 +13,26 @@ import (
 	"strings"
 )
 
+type oAuthError struct {
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
+
+type oAuthAccessTokenGrantUser struct {
+	Id       int64  `json:"id"`
+	Fullname string `json:"fullname"`
+	Username string `json:"username"`
+}
+
+type oAuthAccessTokenGrant struct {
+	AccessToken string                    `json:"access_token"`
+	TokenType   string                    `json:"token_type"`
+	User        oAuthAccessTokenGrantUser `json:"user"`
+}
+
 func oAuthAuthorization(w http.ResponseWriter, r *http.Request) {
 	var (
-		client       oAuthClient
+		client       OAuthClient
 		processError bool
 		user         User
 	)
@@ -44,7 +63,7 @@ func oAuthAuthorization(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("%s?%s", redirect_uri_split[0], redirect_query.Encode()), http.StatusFound)
 		return
 
-	} else if err := gDb.Where(&oAuthClient{ClientId: client_id}).First(&client).Error; err != nil {
+	} else if err := gDb.Where(&OAuthClient{ClientId: client_id}).First(&client).Error; err != nil {
 		// wrong client id
 		redirect_query.Add("error", "unauthorized_client")
 		redirect_query.Add("error_description", "Unknown client ID!")
@@ -64,7 +83,7 @@ func oAuthAuthorization(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// token-callback !
-	if (r.Method == "POST" && !processError) || (client.AutoConfirm) {
+	if (r.Method == "POST" || client.AutoConfirm) && !processError {
 		action := "1"
 		if !client.AutoConfirm {
 			action = r.PostForm["action"][0]
@@ -107,5 +126,87 @@ func oAuthAuthorization(w http.ResponseWriter, r *http.Request) {
 }
 
 func oAuthToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var (
+			client OAuthClient
+			grant  OAuthGrant
+			user   User
+		)
+		grant_type := r.FormValue("grant_type")
+		code := r.FormValue("code")
+		redirect_uri := strings.Split(r.FormValue("redirect_uri"), "?")
+		client_id := r.FormValue("client_id")
+		red_client_id, _ := redis.String(Red.Do("HGET", code, "client_id"))
+		red_user_id, _ := redis.Int64(Red.Do("HGET", code, "user_id"))
 
+		if grant_type != "authorization_code" {
+			// wrong grant_type
+			j, _ := json.Marshal(oAuthError{
+				"unsupported_grant_type",
+				"Please use 'authorization_code'!",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+
+		} else if exists, err := redis.Bool(Red.Do("EXISTS", code)); !exists && err != nil {
+			// code doesn't exist / is expired
+			j, _ := json.Marshal(oAuthError{
+				"invalid_grant",
+				"The authorization code does not exist or is expired!",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+
+		} else if err := gDb.Where(&OAuthClient{ClientId: client_id}).First(&client).Error; err != nil {
+			// client doesn't exist
+			j, _ := json.Marshal(oAuthError{
+				"invalid_client",
+				"The client_id is unknown",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+
+		} else if client.ClientId != red_client_id {
+			// client id doesn't match the client id that should request a token with this code
+			j, _ := json.Marshal(oAuthError{
+				"invalid_client",
+				"The supplied client_id does not match the client_id of the supplied authorization code!",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+		} else if client.RedirectUri != redirect_uri[0] {
+			// wrong redirect uri
+			j, _ := json.Marshal(oAuthError{
+				"invalid_grant",
+				"The redirect_uri does not match!",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+		} else if err := gDb.Where(&User{Id: red_user_id}).First(&user).Error; err != nil {
+			// user for this authorization code doesn't exist
+			j, _ := json.Marshal(oAuthError{
+				"invalid_grant",
+				"The user for this authorization code does not exist!",
+			})
+			http.Error(w, string(j), http.StatusBadRequest)
+		}
+
+		// create or update the OAuthGrant-table
+		token := uuid.New()
+
+		gDb.Where(OAuthGrant{
+			OAuthClientId: client.Id,
+			UserId:        user.Id,
+		}).Attrs(OAuthGrant{
+			OAuthClientId: client.Id,
+			UserId:        user.Id,
+			Token:         token,
+		}).FirstOrCreate(&grant)
+
+		j, _ := json.Marshal(oAuthAccessTokenGrant{
+			token,
+			"bearer",
+			oAuthAccessTokenGrantUser{
+				user.Id,
+				user.Realname,
+				user.Username,
+			},
+		})
+		w.Write(j)
+	}
 }
