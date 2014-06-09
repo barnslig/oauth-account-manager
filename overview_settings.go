@@ -1,27 +1,9 @@
 package main
 
 import (
-	"errors"
-	"github.com/gorilla/sessions"
 	"log"
 	"net/http"
 )
-
-func IsLoggedIn(session *sessions.Session) (User, error) {
-	var user User
-
-	// check if session exists
-	if session.Values["id"] == nil {
-		return user, errors.New("No session")
-	}
-
-	// check if database handle exists
-	if gDb.Where(&User{Id: session.Values["id"].(int64), Active: true}).First(&user).Error != nil {
-		return user, errors.New("Session invalid")
-	}
-
-	return user, nil
-}
 
 func Overview(w http.ResponseWriter, r *http.Request) {
 	session, _ := SessionStore.Get(r, "user")

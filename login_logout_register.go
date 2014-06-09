@@ -8,7 +8,6 @@ import (
 	"github.com/justinas/nosurf"
 	"log"
 	"net/http"
-	"reflect"
 	"time"
 )
 
@@ -25,20 +24,6 @@ type RegisterForm struct {
 	Password        string `schema:"password"`
 	PasswordConfirm string `schema:"password-confirm"`
 	CsrfToken       string `schema:"csrf_token"`
-}
-
-func TestStructStringsLength(m interface{}) bool {
-	r := reflect.ValueOf(m).Elem()
-
-	for i := 0; i < r.NumField(); i++ {
-		if r.Type().Field(i).Type.Kind() == reflect.String {
-			if len(r.Field(i).Interface().(string)) < 1 {
-				return false
-			}
-		}
-	}
-
-	return true
 }
 
 func Confirm(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +107,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		"Title":   "Login",
 		"_csrf":   nosurf.Token(r),
 		"flashes": flashes,
-		"url": r.URL.RequestURI(),
+		"url":     r.URL.RequestURI(),
 	})
 	if err != nil {
 		log.Fatal(err)
